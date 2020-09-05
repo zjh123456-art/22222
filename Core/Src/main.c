@@ -32,7 +32,8 @@
 #include "clock.h"
 #include "AD717X.h"
 #include "adc_4112.h"
-#include "modbus.h"
+
+//#include "modbus.h"
 #include "app.h"
 /* USER CODE END Includes */
 
@@ -74,10 +75,11 @@ static void QY_adc(void);
   * @brief  The application entry point.
   * @retval int
   */
+
 int main(void)
 {
   /* USER CODE BEGIN 1 */
-	char rece_cmd = 0;
+
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -101,14 +103,15 @@ int main(void)
 	MX_DMA_Init();
   MX_SPI1_Init();
 	MX_SPI2_Init();
-	printf(">>>>>>>>>>>>>>>>>");
+
   MX_USART1_UART_Init();
   MX_USART2_UART_Init();
+	printf(">>>>>>>>>>>>>>>>>");
 	//MX_TIM2_Init();
 	//MX_TIM4_Init();
-	test_adc();
+	//test_adc();
   /* USER CODE BEGIN 2 */
-//	app_start();
+	app_start();
 	
 //	printf("modbus testing...please Switch to port 485\r\n");
 //	AD4112_init();
@@ -117,8 +120,25 @@ int main(void)
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-	
-  while (1);
+
+  while (1)
+	{//printf("recvcmd>>>>>rec_flag=%d>>>>>>\r\n",rec_flag);
+	 /****************************************************
+     cmd{[1B]:           
+     0x31 Vol1 ........    0x36 VOL6
+     0x51 AM1  ......      0x56 AM6
+     0xC0 set
+     0x90 DA   
+     data[4B]
+    
+    ****************************************************/
+      uart_data_process();
+		  cmd_run();
+
+			 
+	  }
+
+
 
 }
 
@@ -161,8 +181,10 @@ static void test_adc(void)
 	ad717x_st_reg *reg_ret;
 	ad717x_dev *adc_4112_dev1;
 	ad717x_dev *adc_4112_dev2;
-	AD4112_init(&adc_4112_dev1,1);
 	AD4112_init(&adc_4112_dev2,2);
+	AD4112_init(&adc_4112_dev1,1);
+
+	
 	//adc_4112_dev = AD4112_get_device();
 	
 	while (1)
@@ -181,16 +203,11 @@ static void test_adc(void)
 					
 					reg_ret = AD717X_GetReg(adc_4112_dev1, AD717X_ID_REG);
 					if (reg_ret != NULL) printf("adc id 0x%x\r\n", reg_ret->value);
-				
-					ret = AD717X_ReadRegister(adc_4112_dev2, AD717X_ID_REG);
-					if (ret < 0) continue;
-					
-					reg_ret = AD717X_GetReg(adc_4112_dev2, AD717X_ID_REG);
-					if (reg_ret != NULL) printf("adc2 id 0x%x\r\n", reg_ret->value);
 					break;
 				
 				case '2':
 					adc_cmd = 0;
+			
 					for (i = 0; i < 8;i++)
 					{
 						ret = AD4112_ReadData_ByChannel(adc_4112_dev1, &ret_data, i);
@@ -200,10 +217,12 @@ static void test_adc(void)
 						if (ret < 0) continue;
 						reg_ret = AD717X_GetReg(adc_4112_dev1, AD717X_STATUS_REG);
 						
-						am = AD4112_Code_To_Am(adc_4112_dev1,i, ret_data);
+						am = AD4112_Code_To_Voltage(adc_4112_dev1,i, ret_data);
 						printf("adc status 0x%02x chanel:%d ret value:0x%06x \t\t ampere:%lf\r\n", reg_ret->value, i, ret_data, am);
 					}
-					for (i = 0; i < 8;i++)
+				
+					
+						for (i = 0; i < 8;i++)
 					{
 						ret = AD4112_ReadData_ByChannel(adc_4112_dev2, &ret_data, i);
 						if (ret < 0) continue;

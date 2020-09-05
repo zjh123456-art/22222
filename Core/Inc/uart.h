@@ -7,6 +7,14 @@
 
 #ifndef INC_UART_H_
 #define INC_UART_H_
+
+typedef enum 
+{
+	UART1_PORT=0,
+	UARTNUM
+}UART_PORT;
+
+
 #ifdef __cplusplus
  extern "C" {
 #endif
@@ -25,6 +33,7 @@ HAL_StatusTypeDef rs485_receive_dma(uint8_t* ch, uint8_t len);
 HAL_StatusTypeDef rs485_transmit_ch(char ch);
 HAL_StatusTypeDef rs485_transmit_dma(uint8_t *str, uint32_t len);
 
+HAL_StatusTypeDef USART1_Data_Send(uint8_t *pData,uint16_t len);
 #ifdef __cplusplus
 }
 #endif

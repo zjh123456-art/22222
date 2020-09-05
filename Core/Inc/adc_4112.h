@@ -31,8 +31,8 @@
 int32_t AD4112_init(ad717x_dev **adc_4112_dev,int32_t ID);
 //ad717x_dev* AD4112_get_device(void);
 
-uint32_t AD4112_get_param(uint8_t key);
-void AD4112_set_param(uint8_t key, uint32_t value);
+uint32_t AD4112_get_param(ad717x_dev *dev,uint8_t key);
+void AD4112_set_param(ad717x_dev *dev,uint8_t key, uint32_t value);
 int32_t AD4112_ReadData(ad717x_dev *adc_4112_dev,uint32_t* pData);
 int32_t AD4112_ReadData_ByChannel(ad717x_dev *dev, uint32_t* pData, uint8_t ch);
 double AD4112_Code_To_Am(ad717x_dev *adc_4112_dev,uint32_t chanel, uint32_t code);

@@ -47,7 +47,7 @@ void MX_SPI1_Init(void)
   hspi1.Init.CLKPolarity = SPI_POLARITY_LOW;
   hspi1.Init.CLKPhase = SPI_PHASE_1EDGE;
   hspi1.Init.NSS = SPI_NSS_SOFT;
-  hspi1.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_2;
+  hspi1.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_4;
   hspi1.Init.FirstBit = SPI_FIRSTBIT_MSB;
   hspi1.Init.TIMode = SPI_TIMODE_DISABLE;
   hspi1.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
@@ -79,7 +79,7 @@ void MX_SPI2_Init(void)
   hspi2.Init.FirstBit = SPI_FIRSTBIT_MSB;
   hspi2.Init.TIMode = SPI_TIMODE_DISABLE;
   hspi2.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
-  hspi2.Init.CRCPolynomial = 14;
+  hspi2.Init.CRCPolynomial = 10;
   if (HAL_SPI_Init(&hspi2) != HAL_OK)
   {
     // Error_Handler();
@@ -123,8 +123,8 @@ int32_t spi_remove(struct spi_desc *desc) {
  * @return SUCCESS in case of success, FAILURE otherwise.
  */
 int32_t spi_write(struct spi_desc *desc, uint8_t *data, uint8_t bytes_number) {
-	if (data == NULL) return -1;
-	
+	if (data == NULL || desc==NULL) return -1;
+//	printf(">>>spi_write>>>desc->id=%d\r\n",desc->id);
 	HAL_StatusTypeDef status = HAL_SPI_Transmit(desc->id==1?&hspi1:&hspi2, data, bytes_number, 0xFFFF);
 	if (status != HAL_OK) return -1;
 	
@@ -139,8 +139,8 @@ int32_t spi_write(struct spi_desc *desc, uint8_t *data, uint8_t bytes_number) {
  * @return SUCCESS in case of success, FAILURE otherwise.
  */
 int32_t spi_read(struct spi_desc *desc, uint8_t *data, uint8_t bytes_number) {
-	if (data == NULL) return -1;
-	
+	if (data == NULL && desc==NULL) return -1;
+//	printf(">>>spi_read>>>desc->id=%d bytes_number=%d\r\n",desc->id,bytes_number);
 	HAL_StatusTypeDef status = HAL_SPI_Receive(desc->id==1?&hspi1:&hspi2, data, bytes_number, 0xFFFF);
 	if (status != HAL_OK) return -1;
 	
@@ -157,7 +157,8 @@ int32_t spi_read(struct spi_desc *desc, uint8_t *data, uint8_t bytes_number) {
  */
 int32_t spi_write_and_read(struct spi_desc *desc, uint8_t *pTxData,uint8_t *pRxData, uint16_t Size) {
 	HAL_StatusTypeDef spi_status;
-
+//printf(">>>>>>desc->id=%d\r\n",desc->id);
+	if ( desc==NULL) return -1;
 	if (Size) {
 		spi_status = HAL_SPI_TransmitReceive(desc->id==1?&hspi1:&hspi2, pTxData, pRxData, Size, 0xFFFF);
 		

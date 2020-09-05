@@ -51,21 +51,22 @@
 #include "ad717x.h"
 
 /* Error codes */
-#define NULL_POINTER	(void *)0
-#define INVALID_VAL 	-1 /* Invalid argument */
-#define COMM_ERR    	-2 /* Communication error on receive */
-#define TIMEOUT     	-3 /* A timeout has occured */
+#define INVALID_VAL -1 /* Invalid argument */
+#define COMM_ERR    -2 /* Communication error on receive */
+#define TIMEOUT     -3 /* A timeout has occured */
 
 /***************************************************************************//**
- * @brief  Searches through the list of registers of the driver instance and
- *         retrieves a pointer to the register that matches the given address.
- *
- * @param device - The handler of the instance of the driver.
- * @param reg_address - The address to be used to find the register.
- *
- * @return A pointer to the register if found or 0.
- *******************************************************************************/
-ad717x_st_reg *AD717X_GetReg(ad717x_dev *device, uint8_t reg_address) {
+* @brief  Searches through the list of registers of the driver instance and
+*         retrieves a pointer to the register that matches the given address.
+*
+* @param device - The handler of the instance of the driver.
+* @param reg_address - The address to be used to find the register.
+*
+* @return A pointer to the register if found or 0.
+*******************************************************************************/
+ad717x_st_reg *AD717X_GetReg(ad717x_dev *device,
+			     uint8_t reg_address)
+{
 	uint8_t i;
 	ad717x_st_reg *reg = 0;
 
@@ -83,118 +84,95 @@ ad717x_st_reg *AD717X_GetReg(ad717x_dev *device, uint8_t reg_address) {
 }
 
 /***************************************************************************//**
- * @brief Sets the value of the specified register.
- *
- * @param device - The handler of the instance of the driver.
- * @param reg_address - The address to be used to find the register.
- * @param value - The value to be set for the register.
- *
- * @return Returns 0 for success or negative error code.
- *******************************************************************************/
-int32_t AD717X_SetReg(ad717x_dev *device, uint8_t reg_address, int32_t value) {
-	ad717x_st_reg *reg = 0;
-
-	reg = AD717X_GetReg(device, reg_address);
-	if (!reg)
-		return INVALID_VAL;
-
-	reg->value = value;
-
-	return 0;
-}
-
-ad717x_rdy_status AD717X_CheckRDY(void) {
-	return (ad717x_rdy_status) HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_6);
-}
-
-/***************************************************************************//**
- * @brief Reads the value of the specified register.
- *
- * @param device - The handler of the instance of the driver.
- * @addr - The address of the register to be read. The value will be stored
- *         inside the register structure that holds info about this register.
- *
- * @return Returns 0 for success or negative error code.
- *******************************************************************************/
-int32_t AD717X_ReadRegister(ad717x_dev *device, uint8_t addr) {
-	int32_t ret = 0;
-	uint8_t wrBuf[8] = { 0, 0, 0, 0, 0, 0, 0, 0 };
-	uint8_t rdBuf[8] = { 0, 0, 0, 0, 0, 0, 0, 0 };
-	uint8_t check8 = 0;
-	uint8_t msgBuf[8] = { 0, 0, 0, 0, 0, 0, 0, 0 };
+* @brief Reads the value of the specified register.
+*
+* @param device - The handler of the instance of the driver.
+* @param addr - The address of the register to be read. The value will be stored
+*         inside the register structure that holds info about this register.
+*
+* @return Returns 0 for success or negative error code.
+*******************************************************************************/
+int32_t AD717X_ReadRegister(ad717x_dev *device,
+			    uint8_t addr)
+{
+	int32_t ret       = 0;
+	uint8_t buffer[8] = {0, 0, 0, 0, 0, 0, 0, 0};
+	uint8_t i         = 0;
+	uint8_t check8    = 0;
+	uint8_t msgBuf[8] = {0, 0, 0, 0, 0, 0, 0, 0};
 	ad717x_st_reg *pReg;
 
-	if (!device)
+	if(!device)
 		return INVALID_VAL;
 
 	pReg = AD717X_GetReg(device, addr);
 	if (!pReg)
 		return INVALID_VAL;
-	
-//	printf("adc4112 addr 0x%x value 0x%x\r\n", pReg->addr, pReg->value);
 
 	/* Build the Command word */
-	wrBuf[0] = AD717X_COMM_REG_WEN | AD717X_COMM_REG_RD | AD717X_COMM_REG_RA(pReg->addr);
+	buffer[0] = AD717X_COMM_REG_WEN | AD717X_COMM_REG_RD |
+		    AD717X_COMM_REG_RA(pReg->addr);
 
 	/* Read data from the device */
-	ret = spi_write_and_read(device->spi_desc, wrBuf, rdBuf, ((device->useCRC != AD717X_DISABLE) ? pReg->size + 1 : pReg->size) + 1);
-	if (ret < 0) return ret;
-	
-//	printf("adc4112 device useCRC %d \r\n", device->useCRC);
-//	printf("wrBuf 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x\r\n", wrBuf[0], wrBuf[1], wrBuf[2], wrBuf[3], wrBuf[4], wrBuf[5], wrBuf[6], wrBuf[7]);
-//	printf("rdbuf 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x\r\n", rdBuf[0], rdBuf[1], rdBuf[2], rdBuf[3], rdBuf[4], rdBuf[5], rdBuf[6], rdBuf[7]);
-	
+	spi_write(device->spi_desc,buffer,1);
+	ret = spi_read(device->spi_desc,&buffer[1],((device->useCRC != AD717X_DISABLE) ? pReg->size + 1: pReg->size));
+	if(ret < 0)
+		return ret;
+
 	/* Check the CRC */
-	if (device->useCRC == AD717X_USE_CRC) {
-		msgBuf[0] = AD717X_COMM_REG_WEN | AD717X_COMM_REG_RD | AD717X_COMM_REG_RA(pReg->addr);
-		for (int i = 1; i < pReg->size + 2; ++i) {
-			msgBuf[i] = rdBuf[i];
+	if(device->useCRC == AD717X_USE_CRC) {
+		msgBuf[0] = AD717X_COMM_REG_WEN | AD717X_COMM_REG_RD |
+			    AD717X_COMM_REG_RA(pReg->addr);
+		for(i = 1; i < pReg->size + 2; ++i) {
+			msgBuf[i] = buffer[i];
 		}
 		check8 = AD717X_ComputeCRC8(msgBuf, pReg->size + 2);
 	}
-	if (device->useCRC == AD717X_USE_XOR) {
-		msgBuf[0] = AD717X_COMM_REG_WEN | AD717X_COMM_REG_RD | AD717X_COMM_REG_RA(pReg->addr);
-		for (int i = 1; i < pReg->size + 2; ++i) {
-			msgBuf[i] = rdBuf[i];
+	if(device->useCRC == AD717X_USE_XOR) {
+		msgBuf[0] = AD717X_COMM_REG_WEN | AD717X_COMM_REG_RD |
+			    AD717X_COMM_REG_RA(pReg->addr);
+		for(i = 1; i < pReg->size + 2; ++i) {
+			msgBuf[i] = buffer[i];
 		}
 		check8 = AD717X_ComputeXOR8(msgBuf, pReg->size + 2);
 	}
 
-	if (check8 != 0) {
+	if(check8 != 0) {
 		/* ReadRegister checksum failed. */
 		return COMM_ERR;
 	}
 
 	/* Build the result */
 	pReg->value = 0;
-	for (int i = 1; i < pReg->size + 1; i++) {
+	for(i = 1; i < pReg->size + 1; i++) {
 		pReg->value <<= 8;
-		pReg->value += rdBuf[i];
+		pReg->value += buffer[i];
 	}
 
 	return ret;
 }
 
 /***************************************************************************//**
- * @brief Writes the value of the specified register.
- *
- * @param device - The handler of the instance of the driver.
- * @param addr   - The address of the register to be written with the value stored
- *               inside the register structure that holds info about this
- *               register.
- *
- * @return Returns 0 for success or negative error code.
- *******************************************************************************/
-int32_t AD717X_WriteRegister(ad717x_dev *device, uint8_t addr) {
-	int32_t ret = 0;
+* @brief Writes the value of the specified register.
+*
+* @param device - The handler of the instance of the driver.
+* @param addr   - The address of the register to be written with the value stored
+*               inside the register structure that holds info about this
+*               register.
+*
+* @return Returns 0 for success or negative error code.
+*******************************************************************************/
+int32_t AD717X_WriteRegister(ad717x_dev *device,
+			     uint8_t addr)
+{
+	int32_t ret      = 0;
 	int32_t regValue = 0;
-	uint8_t wrBuf[8] = { 0, 0, 0, 0, 0, 0, 0, 0 };
-	uint8_t rdBuf[8] = { 0, 0, 0, 0, 0, 0, 0, 0 };
-	uint8_t i = 0;
-	uint8_t crc8 = 0;
+	uint8_t wrBuf[8] = {0, 0, 0, 0, 0, 0, 0, 0};
+	uint8_t i        = 0;
+	uint8_t crc8     = 0;
 	ad717x_st_reg *preg;
 
-	if (!device)
+	if(!device)
 		return INVALID_VAL;
 
 	preg = AD717X_GetReg(device, addr);
@@ -202,77 +180,81 @@ int32_t AD717X_WriteRegister(ad717x_dev *device, uint8_t addr) {
 		return INVALID_VAL;
 
 	/* Build the Command word */
-	wrBuf[0] = AD717X_COMM_REG_WEN | AD717X_COMM_REG_WR | AD717X_COMM_REG_RA(preg->addr);
+	wrBuf[0] = AD717X_COMM_REG_WEN | AD717X_COMM_REG_WR |
+		   AD717X_COMM_REG_RA(preg->addr);
 
 	/* Fill the write buffer */
 	regValue = preg->value;
-	for (i = 0; i < preg->size; i++) {
+	 //printf("[%x]=%x\r\n",preg->addr ,regValue);
+	for(i = 0; i < preg->size; i++) {
 		wrBuf[preg->size - i] = regValue & 0xFF;
 		regValue >>= 8;
 	}
-
+  
 	/* Compute the CRC */
-	if (device->useCRC != AD717X_DISABLE) {
+	if(device->useCRC != AD717X_DISABLE) {
 		crc8 = AD717X_ComputeCRC8(wrBuf, preg->size + 1);
 		wrBuf[preg->size + 1] = crc8;
 	}
 
 	/* Write data to the device */
-	ret = spi_write_and_read(device->spi_desc, wrBuf, rdBuf, (device->useCRC != AD717X_DISABLE) ? preg->size + 2 : preg->size + 1);
+	ret = spi_write(device->spi_desc,
+				 wrBuf,
+				 (device->useCRC != AD717X_DISABLE) ?
+				 preg->size + 2 : preg->size + 1);
 
 	return ret;
 }
 
 /***************************************************************************//**
- * @brief Resets the device.
- *
- * @param device - The handler of the instance of the driver.
- *
- * @return Returns 0 for success or negative error code.
- *******************************************************************************/
-//desc:description
-int32_t AD717X_Reset(ad717x_dev *device) {
+* @brief Resets the device.
+*
+* @param device - The handler of the instance of the driver.
+*
+* @return Returns 0 for success or negative error code.
+*******************************************************************************/
+int32_t AD717X_Reset(ad717x_dev *device)
+{
 	int32_t ret = 0;
 	uint8_t wrBuf[32] = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
 
-	if (!device)
-	{
-		printf("reset error\r\n");
+	if(!device)
 		return INVALID_VAL;
-	}
 
-	ret = spi_write(device->spi_desc, wrBuf, 32);
-	
-	// HAL_Delay(1);
+	ret = spi_write(device->spi_desc,
+				 wrBuf,
+				 32);
 
 	return ret;
 }
 
 /***************************************************************************//**
- * @brief Waits until a new conversion result is available.
- *
- * @param device  - The handler of the instance of the driver.
- * @param timeout - Count representing the number of polls to be done until the
- *                  function returns if no new data is available.
- *
- * @return Returns 0 for success or negative error code.
- *******************************************************************************/
-int32_t AD717X_WaitForReady(ad717x_dev *device, uint32_t timeout) {
+* @brief Waits until a new conversion result is available.
+*
+* @param device  - The handler of the instance of the driver.
+* @param timeout - Count representing the number of polls to be done until the
+*                  function returns if no new data is available.
+*
+* @return Returns 0 for success or negative error code.
+*******************************************************************************/
+int32_t AD717X_WaitForReady(ad717x_dev *device,
+			    uint32_t timeout)
+{
 	ad717x_st_reg *statusReg;
 	int32_t ret;
 	int8_t ready = 0;
 
-	if (!device || !device->regs)
+	if(!device || !device->regs)
 		return INVALID_VAL;
 
 	statusReg = AD717X_GetReg(device, AD717X_STATUS_REG);
 	if (!statusReg)
 		return INVALID_VAL;
 
-	while (!ready && --timeout) {
+	while(!ready && --timeout) {
 		/* Read the value of the Status Register */
 		ret = AD717X_ReadRegister(device, AD717X_STATUS_REG);
-		if (ret < 0)
+		if(ret < 0)
 			return ret;
 
 		/* Check the RDY bit in the Status Register */
@@ -283,18 +265,20 @@ int32_t AD717X_WaitForReady(ad717x_dev *device, uint32_t timeout) {
 }
 
 /***************************************************************************//**
- * @brief Reads the conversion result from the device.
- *
- * @param device - The handler of the instance of the driver.
- * @param pData  - Pointer to store the read data.
- *
- * @return Returns 0 for success or negative error code.
- *******************************************************************************/
-int32_t AD717X_ReadData(ad717x_dev *device, uint32_t* pData) {
+* @brief Reads the conversion result from the device.
+*
+* @param device - The handler of the instance of the driver.
+* @param pData  - Pointer to store the read data.
+*
+* @return Returns 0 for success or negative error code.
+*******************************************************************************/
+int32_t AD717X_ReadData(ad717x_dev *device,
+			int32_t* pData)
+{
 	ad717x_st_reg *dataReg;
 	int32_t ret;
 
-	if (!device || !device->regs)
+	if(!device || !device->regs)
 		return INVALID_VAL;
 
 	dataReg = AD717X_GetReg(device, AD717X_DATA_REG);
@@ -304,7 +288,7 @@ int32_t AD717X_ReadData(ad717x_dev *device, uint32_t* pData) {
 	/* Update the data register length with respect to device and options */
 	ret = AD717X_ComputeDataregSize(device);
 
-	/* Read the value of the Data Register */
+	/* Read the value of the Status Register */
 	ret |= AD717X_ReadRegister(device, AD717X_DATA_REG);
 
 	/* Get the read result */
@@ -314,14 +298,15 @@ int32_t AD717X_ReadData(ad717x_dev *device, uint32_t* pData) {
 }
 
 /***************************************************************************//**
- * @brief Computes data register read size to account for bit number and status
- * 		 read.
- *
- * @param device - The handler of the instance of the driver.
- *
- * @return 0in case of success or negative code in case of failure.
- *******************************************************************************/
-int32_t AD717X_ComputeDataregSize(ad717x_dev *device) {
+* @brief Computes data register read size to account for bit number and status
+* 		 read.
+*
+* @param device - The handler of the instance of the driver.
+*
+* @return 0in case of success or negative code in case of failure.
+*******************************************************************************/
+int32_t AD717X_ComputeDataregSize(ad717x_dev *device)
+{
 	ad717x_st_reg *reg_ptr;
 	ad717x_st_reg *datareg_ptr;
 	uint16_t case_var;
@@ -330,7 +315,8 @@ int32_t AD717X_ComputeDataregSize(ad717x_dev *device) {
 	reg_ptr = AD717X_GetReg(device, AD717X_IFMODE_REG);
 	/* Get data register pointer */
 	datareg_ptr = AD717X_GetReg(device, AD717X_DATA_REG);
-	case_var = reg_ptr->value & (AD717X_IFMODE_REG_DATA_STAT | AD717X_IFMODE_REG_DATA_WL16);
+	case_var = reg_ptr->value & (AD717X_IFMODE_REG_DATA_STAT |
+				     AD717X_IFMODE_REG_DATA_WL16);
 
 	/* Compute data register size */
 	datareg_ptr->size = 3;
@@ -343,27 +329,30 @@ int32_t AD717X_ComputeDataregSize(ad717x_dev *device) {
 	reg_ptr = AD717X_GetReg(device, AD717X_ID_REG);
 
 	/* If the part is 32/24 bit wide add a byte to the read */
-	if ((reg_ptr->value & AD717X_ID_REG_MASK) == AD7177_2_ID_REG_VALUE)
+	if((reg_ptr->value & AD717X_ID_REG_MASK) == AD7177_2_ID_REG_VALUE)
 		datareg_ptr->size++;
 
 	return 0;
 }
 
 /***************************************************************************//**
- * @brief Computes the CRC checksum for a data buffer.
- *
- * @param pBuf    - Data buffer
- * @param bufSize - Data buffer size in bytes
- *
- * @return Returns the computed CRC checksum.
- *******************************************************************************/
-uint8_t AD717X_ComputeCRC8(uint8_t * pBuf, uint8_t bufSize) {
-	uint8_t i = 0;
+* @brief Computes the CRC checksum for a data buffer.
+*
+* @param pBuf    - Data buffer
+* @param bufSize - Data buffer size in bytes
+*
+* @return Returns the computed CRC checksum.
+*******************************************************************************/
+uint8_t AD717X_ComputeCRC8(uint8_t * pBuf,
+			   uint8_t bufSize)
+{
+	uint8_t i   = 0;
 	uint8_t crc = 0;
 
-	while (bufSize) {
-		for (i = 0x80; i != 0; i >>= 1) {
-			if (((crc & 0x80) != 0) != ((*pBuf & i) != 0)) { /* MSB of CRC register XOR input Bit from Data */
+	while(bufSize) {
+		for(i = 0x80; i != 0; i >>= 1) {
+			if(((crc & 0x80) != 0) != ((*pBuf & i) !=
+						   0)) { /* MSB of CRC register XOR input Bit from Data */
 				crc <<= 1;
 				crc ^= AD717X_CRC8_POLYNOMIAL_REPRESENTATION;
 			} else {
@@ -377,17 +366,19 @@ uint8_t AD717X_ComputeCRC8(uint8_t * pBuf, uint8_t bufSize) {
 }
 
 /***************************************************************************//**
- * @brief Computes the XOR checksum for a data buffer.
- *
- * @param pBuf    - Data buffer
- * @param bufSize - Data buffer size in bytes
- *
- * @return Returns the computed XOR checksum.
- *******************************************************************************/
-uint8_t AD717X_ComputeXOR8(uint8_t * pBuf, uint8_t bufSize) {
+* @brief Computes the XOR checksum for a data buffer.
+*
+* @param pBuf    - Data buffer
+* @param bufSize - Data buffer size in bytes
+*
+* @return Returns the computed XOR checksum.
+*******************************************************************************/
+uint8_t AD717X_ComputeXOR8(uint8_t * pBuf,
+			   uint8_t bufSize)
+{
 	uint8_t xor = 0;
 
-	while (bufSize) {
+	while(bufSize) {
 		xor ^= *pBuf;
 		pBuf++;
 		bufSize--;
@@ -396,26 +387,27 @@ uint8_t AD717X_ComputeXOR8(uint8_t * pBuf, uint8_t bufSize) {
 }
 
 /***************************************************************************//**
- * @brief Updates the CRC settings.
- *
- * @param device - The handler of the instance of the driver.
- *
- * @return Returns 0 for success or negative error code.
- *******************************************************************************/
-int32_t AD717X_UpdateCRCSetting(ad717x_dev *device) {
-	ad717x_st_reg *ifReg;
+* @brief Updates the CRC settings.
+*
+* @param device - The handler of the instance of the driver.
+*
+* @return Returns 0 for success or negative error code.
+*******************************************************************************/
+int32_t AD717X_UpdateCRCSetting(ad717x_dev *device)
+{
+	ad717x_st_reg *interfaceReg;
 
-	if (!device || !device->regs)
+	if(!device || !device->regs)
 		return INVALID_VAL;
 
-	ifReg = AD717X_GetReg(device, AD717X_IFMODE_REG);
-	if (!ifReg)
+	interfaceReg = AD717X_GetReg(device, AD717X_IFMODE_REG);
+	if (!interfaceReg)
 		return INVALID_VAL;
 
 	/* Get CRC State. */
-	if (AD717X_IFMODE_REG_CRC_STAT(ifReg->value)) {
+	if(AD717X_IFMODE_REG_CRC_STAT(interfaceReg->value)) {
 		device->useCRC = AD717X_USE_CRC;
-	} else if (AD717X_IFMODE_REG_XOR_STAT(ifReg->value)) {
+	} else if(AD717X_IFMODE_REG_XOR_STAT(interfaceReg->value)) {
 		device->useCRC = AD717X_USE_XOR;
 	} else {
 		device->useCRC = AD717X_DISABLE;
@@ -433,7 +425,7 @@ int32_t AD717X_UpdateCRCSetting(ad717x_dev *device) {
 *
 * @return Returns 0 for success or negative error code.
 *******************************************************************************/
-int32_t AD717X_Init(ad717x_dev **device, ad717x_init_param init_param,int32_t ID)
+int32_t AD717X_Init(ad717x_dev **device,ad717x_init_param init_param,int32_t ID)
 {
 	ad717x_dev *dev;
 	int32_t ret;
@@ -442,7 +434,7 @@ int32_t AD717X_Init(ad717x_dev **device, ad717x_init_param init_param,int32_t ID
 	dev = (ad717x_dev *)malloc(sizeof(*dev));
 	if (!dev)
 		return -1;
-		
+
 	dev->regs = init_param.regs;
 	dev->num_regs = init_param.num_regs;
 
@@ -454,11 +446,7 @@ int32_t AD717X_Init(ad717x_dev **device, ad717x_init_param init_param,int32_t ID
 	/*  Reset the device interface.*/
 	ret = AD717X_Reset(dev);
 	if (ret < 0)
-	{
-		printf("init error\r\n");
 		return ret;
-	}
-		
 
 	/* Initialize ADC mode register. */
 	ret = AD717X_WriteRegister(dev, AD717X_ADCMODE_REG);
@@ -506,13 +494,14 @@ int32_t AD717X_Init(ad717x_dev **device, ad717x_init_param init_param,int32_t ID
  * @brief Free the resources allocated by AD717X_Init().
  * @param dev - The device structure.
  * @return SUCCESS in case of success, negative error code otherwise.
- *******************************************************************************/
-int32_t AD717X_remove(ad717x_dev *dev) {
+*******************************************************************************/
+int32_t AD717X_remove(ad717x_dev *dev)
+{
 	int32_t ret;
 
 	ret = spi_remove(dev->spi_desc);
-	if (dev) 
-		free(dev);
+
+	free(dev);
 
 	return ret;
 }

@@ -5,10 +5,15 @@
  *      Author: aguang
  */
 #include <stdio.h>
+
 #include "uart.h"
 
+//unsigned int cmd_flag;
+//unsigned int rec_flag;
+//unsigned char CmdRecvBuffer[CMDLISTNUM][10];
 UART_HandleTypeDef huart1;
 UART_HandleTypeDef huart2;
+
 
 /* With GCC, small printf (option LD Linker->Libraries->Small printf set to 'Yes') calls __io_putchar() */
 #ifdef __GNUC__
@@ -18,6 +23,7 @@ UART_HandleTypeDef huart2;
 #define PUTCHAR_PROTOTYPE int fputc(int ch, FILE *f)
 #define GETCHAR_PROTOTYPE int fgetc(FILE *f)
 #endif /* __GNUC__ */
+
 
 PUTCHAR_PROTOTYPE
 {
@@ -57,9 +63,13 @@ void MX_USART1_UART_Init(void)
     // Error Handler
   }
   /* USER CODE BEGIN USART1_Init 2 */
-
+		 
+    HAL_NVIC_EnableIRQ(USART1_IRQn);
+	  HAL_NVIC_SetPriority(USART1_IRQn, 3, 3);
+		__HAL_UART_ENABLE_IT(&huart1,UART_IT_RXNE);//接收中断
+	  __HAL_UART_ENABLE_IT(&huart1,UART_IT_IDLE);//空闲中断
+	//HAL_UART_Receive_IT(&huart1,&aRxBuffer[UART1_PORT],1);			// Enable the USART1 Interrupt
   /* USER CODE END USART1_Init 2 */
-
 }
 
 void dbg_scanf(char *ch)
@@ -91,7 +101,7 @@ void MX_USART2_UART_Init(void)
 
   /* USER CODE END USART2_Init 1 */
   huart2.Instance = USART2;
-  huart2.Init.BaudRate = 2000000;
+  huart2.Init.BaudRate = 9600;
   huart2.Init.WordLength = UART_WORDLENGTH_8B;
   huart2.Init.StopBits = UART_STOPBITS_1;
   huart2.Init.Parity = UART_PARITY_NONE;
@@ -131,4 +141,48 @@ HAL_StatusTypeDef rs485_transmit_dma(uint8_t *str, uint32_t len)
 {
 	// return HAL_UART_Transmit(&huart2, str, len, 1);
 	return HAL_UART_Transmit_DMA(&huart2, str, len);
+}
+
+
+
+//回调函数
+void USART1_IdleCallback(uint8_t *pData,uint16_t len)
+{
+	while(__HAL_UART_GET_FLAG(&huart1,UART_FLAG_TC) != SET);
+	HAL_UART_Transmit(&huart1,pData,len,1000);
+}
+void USART1_IRQHandler(void)
+{
+	uint8_t res = 0;
+	static uint32_t rxConut=0;
+	static uint8_t recbuf[128];
+	//接收中断
+	if(__HAL_UART_GET_FLAG(&huart1,UART_FLAG_RXNE) != RESET)
+	{
+		HAL_UART_Receive(&huart1,&res,1,1000);
+		
+		//将数据放入缓冲区
+		if(rxConut < 128)
+		{
+			recbuf[rxConut] = res;
+			rxConut++;
+		}
+		
+		__HAL_UART_CLEAR_FLAG(&huart1,UART_FLAG_RXNE);
+	}
+	//空闲中断
+	if(__HAL_UART_GET_FLAG(&huart1,UART_FLAG_IDLE) != RESET)
+	{
+		//一帧数据接收完成
+		//USART1_IdleCallback(recbuf[UART1_PORT],rxConut);
+		 //uart_data_process(recbuf[UART1_PORT],rxConut);
+		 wirteRingbuffer(recbuf,rxConut);
+		 rxConut = 0;
+		__HAL_UART_CLEAR_IDLEFLAG(&huart1);
+	}
+}
+HAL_StatusTypeDef  USART1_Data_Send(uint8_t *pData,uint16_t len)
+{
+	while(__HAL_UART_GET_FLAG(&huart1,UART_FLAG_TC) != SET);
+	return HAL_UART_Transmit(&huart1,pData,len,1000);
 }

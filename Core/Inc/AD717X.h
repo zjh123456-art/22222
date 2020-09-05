@@ -309,7 +309,7 @@ int32_t AD717X_Reset(ad717x_dev *device);
 int32_t AD717X_WaitForReady(ad717x_dev *device, uint32_t timeout);
 
 /*! Reads the conversion result from the device. */
-int32_t AD717X_ReadData(ad717x_dev *device, uint32_t* pData);
+int32_t AD717X_ReadData(ad717x_dev *device, int32_t* pData);
 
 /*! Computes data register read size to account for bit number and status read. */
 int32_t AD717X_ComputeDataregSize(ad717x_dev *device);

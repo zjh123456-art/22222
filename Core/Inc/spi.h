@@ -55,7 +55,7 @@ typedef struct spi_desc {
 /* USER CODE BEGIN Prototypes */
 
 void MX_SPI1_Init(void);
-void MX_SPI2_Init(void);
+
 /* Initialize the SPI communication peripheral. */
 int32_t spi_init(struct spi_desc **desc, struct spi_init_param *param);
 
