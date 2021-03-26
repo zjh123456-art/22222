@@ -13,7 +13,8 @@
 
 #include "AD717X.h"
 
-#define VOLTAGE_REF						2.5				//˜ËœÊ…¢¿¼ëŠ‰º
+//#define VOLTAGE_REF						2.357		//˜ËœÊ…¢¿¼ëŠ‰º
+extern double VOLTAGE_REF;
 #define RESISTANCE_REF				50
 #define DIFF_PRESSURE					0.1		
 

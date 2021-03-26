@@ -155,14 +155,14 @@ void USART1_IRQHandler(void)
 {
 	uint8_t res = 0;
 	static uint32_t rxConut=0;
-	static uint8_t recbuf[128];
+	static uint8_t recbuf[256];
 	//接收中断
 	if(__HAL_UART_GET_FLAG(&huart1,UART_FLAG_RXNE) != RESET)
 	{
 		HAL_UART_Receive(&huart1,&res,1,1000);
 		
 		//将数据放入缓冲区
-		if(rxConut < 128)
+		if(rxConut < 256)
 		{
 			recbuf[rxConut] = res;
 			rxConut++;

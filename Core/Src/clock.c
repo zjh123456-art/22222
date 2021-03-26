@@ -153,9 +153,10 @@ void MX_TIM2_Init(void)
 
   /* USER CODE END TIM2_Init 1 */
   htim2.Instance = TIM2;
-  htim2.Init.Prescaler = (72 - 1);
+	/* Compute the prescaler value to have TIMx counter clock equal to 10000 Hz */
+  htim2.Init.Prescaler = (SystemCoreClock / 10000) - 1;
   htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim2.Init.Period = 100;										//100us( (72-1),100 ) 10k/s, 200us( (72-1),200 ) 5k/s, 1ms( (72-1),1000 ) 1k/s
+  htim2.Init.Period = 0.5*10000;										//100us( (72-1),100 ) 10k/s, 200us( (72-1),200 ) 5k/s, 1ms( (72-1),1000 ) 1k/s
   htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_ENABLE;
   if (HAL_TIM_Base_Init(&htim2) != HAL_OK)
@@ -233,7 +234,9 @@ void him_set_counter(uint8_t him_index, uint32_t cnt)
 
 __weak void him2_callback(void)
 {
-	printf("123\r\n");
+	static unsigned char flag=0;
+	HAL_GPIO_WritePin(GPIOA, GPIO_PIN_3,flag?1:0);
+	flag=~flag;
 }
 
 __weak void him4_callback(void)

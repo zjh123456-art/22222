@@ -7,17 +7,22 @@
 
 #ifndef INC_APP_H_
 #define INC_APP_H_
-#define DEBUG
+
+#define DEBUG				//¿ªÆôDEBUG
 #ifndef DEBUG
   #define printf(format,...)
 #endif
 
+
 #define CMDLISTNUM (12)
-#define BUFSIZE   (256)
+#define BUFSIZE   (64)
 extern unsigned int cmd_flag;
 extern unsigned int DataParserFlag;
-extern unsigned char CmdRecvBuffer[CMDLISTNUM][10];
+extern unsigned char CmdRecvBuffer[CMDLISTNUM][BUFSIZE];
 extern unsigned char CmdNumCount;
+
+
+//cmd len data crc
 typedef union{
 	unsigned char reg[4];
 	float RegFloatVal;
@@ -25,8 +30,10 @@ typedef union{
 
 typedef struct {
 unsigned char cmd;
-float Regdata;
+unsigned int len;
+//RegValDef Regdata;
 unsigned int crc;	
+void *data;
 }SendDataStruct;
 
 #ifdef __cplusplus
@@ -34,6 +41,7 @@ unsigned int crc;
 #endif
 
 #include "stm32f1xx_hal.h"
+
 
 void app_start(void); 
 void app_work(void);
@@ -45,8 +53,8 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin);
 void him2_callback(void);
 void him4_callback(void);
 unsigned char uart_data_process(void);
-void cmd_run();
-
+void cmd_run(void);
+static void switchmode(uint8_t mode);
 #ifdef __cplusplus
 }
 #endif

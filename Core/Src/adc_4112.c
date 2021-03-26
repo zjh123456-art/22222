@@ -110,7 +110,7 @@ int32_t AD4112_ReadData_ByChannel(ad717x_dev *device, uint32_t* pData, uint8_t c
 	{
 		ret = AD717X_ReadData(device, pData);
 		timeout++;
-		if (timeout>100) return -1;
+		//if (timeout>100) return -1;
 		if (ret < 0) continue;
 		
 		if (!isDataSata) break;
